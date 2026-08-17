@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { SpendingChart, type SpendingPoint } from '../components/charts/SpendingChart'
 import { toast } from '../components/Toaster'
 import { Card, EmptyState, Modal, Segmented, StatTile } from '../components/ui'
@@ -154,8 +154,13 @@ function SpendEditModal({
 }) {
   const [value, setValue] = useState(initial !== null ? String(initial) : '')
   const [error, setError] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const save = () => {
+    if (inputRef.current?.validity.badInput) {
+      setError('Enter a number of ₹0 or more.')
+      return
+    }
     const trimmed = value.trim()
     if (trimmed === '') {
       setSpending(date, null)
@@ -180,6 +185,7 @@ function SpendEditModal({
       </label>
       <input
         id="spend-edit"
+        ref={inputRef}
         type="number"
         inputMode="decimal"
         min={0}

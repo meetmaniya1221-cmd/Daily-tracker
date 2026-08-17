@@ -12,7 +12,7 @@ import {
   IconX,
 } from '../components/Icons'
 import type { Category } from '../types'
-import { formatMedium } from '../lib/date'
+import { timestampToLocalDate } from '../lib/date'
 import { seriesColor } from '../lib/palette'
 import { activeCategories, archivedCategories } from '../lib/selectors'
 import {
@@ -210,7 +210,7 @@ export function Categories() {
                   <span className="cat-name">{c.name}</span>
                   <span className="cat-usage">
                     {usage.get(c.id) ?? 0} day{(usage.get(c.id) ?? 0) === 1 ? '' : 's'} recorded
-                    {c.archivedAt ? ` · archived ${formatMedium(c.archivedAt.slice(0, 10))}` : ''}
+                    {c.archivedAt ? ` · archived ${timestampToLocalDate(c.archivedAt)}` : ''}
                   </span>
                 </div>
                 <div className="cat-actions">

@@ -139,10 +139,14 @@ export function CalendarPage() {
       <Card
         title={formatFull(selected)}
         actions={
-          <Link className="btn btn-small" to={`/entry?date=${selected}`}>
-            <IconPencil size={14} />
-            {entry ? 'Edit entry' : 'Add entry'}
-          </Link>
+          selected <= today ? (
+            <Link className="btn btn-small" to={`/entry?date=${selected}`}>
+              <IconPencil size={14} />
+              {entry ? 'Edit entry' : 'Add entry'}
+            </Link>
+          ) : (
+            <span className="field-hint">Future date</span>
+          )
         }
       >
         {entry && overall !== null ? (

@@ -74,6 +74,13 @@ export function DailyEntry() {
 
   const onSave = () => {
     if (!complete) return
+    // A number input with unparseable text reports value '' but badInput true —
+    // don't mistake that for "field intentionally left blank".
+    const spendEl = document.getElementById('entry-spending') as HTMLInputElement | null
+    if (spendEl?.validity.badInput) {
+      setSpendingError('Spending must be a number of ₹0 or more.')
+      return
+    }
     const trimmed = spendingStr.trim()
     let amount: number | null = null
     if (trimmed !== '') {

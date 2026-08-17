@@ -1,8 +1,18 @@
 import type {
   AppData, Category, DailyEntry, Priority, RecurrenceFreq, SpendingRecord, Task,
 } from '../types'
-import { isValidKey } from './date'
+import { isValidKey, todayKey } from './date'
 import { uid } from './id'
+
+const EPOCH = '1970-01-01T00:00:00.000Z'
+
+/** Parseable timestamp normalized to canonical UTC ISO, else null. */
+function isoNorm(v: unknown): string | null {
+  if (typeof v !== 'string') return null
+  const t = Date.parse(v)
+  if (Number.isNaN(t)) return null
+  return new Date(t).toISOString()
+}
 
 /**
  * Structural sanitizer shared by storage load and backup import.
@@ -26,7 +36,18 @@ export function sanitizeAppData(raw: unknown): AppData | null {
       categories.push(cat)
     }
   }
-  if (categories.length === 0) return null
+  // Daily tracking needs at least one active category — an all-archived or
+  // empty set would break entry creation, so such data is not accepted.
+  if (categories.length === 0 || !categories.some((c) => c.active)) return null
+
+  // Normalize display order: imports may carry duplicate or defaulted order
+  // values, which would make reordering a silent no-op.
+  categories
+    .slice()
+    .sort((a, b) => a.order - b.order || (a.createdAt < b.createdAt ? -1 : 1))
+    .forEach((c, i) => {
+      c.order = i
+    })
 
   const entries: Record<string, DailyEntry> = {}
   for (const [key, value] of Object.entries(obj.entries as Record<string, unknown>)) {
@@ -65,7 +86,16 @@ function str(v: unknown): string | null {
 }
 
 function isoOrNow(v: unknown): string {
-  return typeof v === 'string' && !Number.isNaN(Date.parse(v)) ? v : new Date().toISOString()
+  return isoNorm(v) ?? new Date().toISOString()
+}
+
+/**
+ * updatedAt for imported records: never default to "now" — merge resolves
+ * conflicts by newer-wins, and a record of unknown age must not beat genuine
+ * current data. Fall back to createdAt, then the epoch.
+ */
+function isoUpdatedAt(updatedAt: unknown, createdAt: unknown): string {
+  return isoNorm(updatedAt) ?? isoNorm(createdAt) ?? EPOCH
 }
 
 function sanitizeCategory(raw: unknown): Category | null {
@@ -82,7 +112,7 @@ function sanitizeCategory(raw: unknown): Category | null {
       ? Math.abs(Math.trunc(c.colorSlot))
       : 0,
     createdAt: isoOrNow(c.createdAt),
-    ...(str(c.archivedAt) ? { archivedAt: c.archivedAt as string } : {}),
+    ...(isoNorm(c.archivedAt) ? { archivedAt: isoNorm(c.archivedAt) as string } : {}),
   }
 }
 
@@ -102,7 +132,7 @@ function sanitizeEntry(key: string, raw: unknown): DailyEntry | null {
     date: key,
     scores,
     createdAt: isoOrNow(e.createdAt),
-    updatedAt: isoOrNow(e.updatedAt),
+    updatedAt: isoUpdatedAt(e.updatedAt, e.createdAt),
   }
 }
 
@@ -110,7 +140,8 @@ function sanitizeSpending(key: string, raw: unknown): SpendingRecord | null {
   if (!isValidKey(key) || !raw || typeof raw !== 'object') return null
   const s = raw as Record<string, unknown>
   if (typeof s.amount !== 'number' || !Number.isFinite(s.amount) || s.amount < 0) return null
-  return { amount: Math.round(s.amount * 100) / 100, updatedAt: isoOrNow(s.updatedAt) }
+  if (s.amount > 1e12) return null // absurd values would overflow formatting
+  return { amount: Math.round(s.amount * 100) / 100, updatedAt: isoUpdatedAt(s.updatedAt, null) }
 }
 
 const PRIORITIES: Priority[] = ['low', 'medium', 'high']
@@ -121,9 +152,11 @@ function sanitizeTask(raw: unknown): Task | null {
   const t = raw as Record<string, unknown>
   const title = str(t.title)
   if (!title) return null
-  const deadline = isValidKey(t.deadline) ? (t.deadline as string) : undefined
+  let deadline = isValidKey(t.deadline) ? (t.deadline as string) : undefined
   const rec = t.recurrence as Record<string, unknown> | undefined
   const freq = rec && FREQS.includes(rec.freq as RecurrenceFreq) ? (rec.freq as RecurrenceFreq) : null
+  // Recurring tasks always carry a deadline — it anchors the schedule.
+  if (freq && !deadline) deadline = todayKey()
   return {
     id: str(t.id) ?? uid(),
     title: title.trim().slice(0, 200),
@@ -134,7 +167,7 @@ function sanitizeTask(raw: unknown): Task | null {
     ...(freq ? { recurrence: { freq } } : {}),
     ...(str(t.seriesId) ? { seriesId: t.seriesId as string } : {}),
     createdAt: isoOrNow(t.createdAt),
-    updatedAt: isoOrNow(t.updatedAt),
+    updatedAt: isoUpdatedAt(t.updatedAt, t.createdAt),
   }
 }
 

@@ -84,39 +84,59 @@ const MONTHS = [
 ]
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
+/** Parse for display: never crash on a malformed key — fall back to raw text. */
+function parseSafe(key: string): Date | null {
+  const d = parseKey(key)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
 /** "17 August 2026" */
 export function formatFull(key: string): string {
-  const d = parseKey(key)
+  const d = parseSafe(key)
+  if (!d) return key
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
 
 /** "17 Aug 2026" */
 export function formatMedium(key: string): string {
-  const d = parseKey(key)
+  const d = parseSafe(key)
+  if (!d) return key
   return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`
 }
 
 /** "17 Aug" */
 export function formatShort(key: string): string {
-  const d = parseKey(key)
+  const d = parseSafe(key)
+  if (!d) return key
   return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`
 }
 
 /** "Aug '26" */
 export function formatMonthShort(key: string): string {
-  const d = parseKey(key)
+  const d = parseSafe(key)
+  if (!d) return key
   return `${MONTHS[d.getMonth()].slice(0, 3)} '${String(d.getFullYear()).slice(2)}`
 }
 
 /** "August 2026" */
 export function formatMonthYear(key: string): string {
-  const d = parseKey(key)
+  const d = parseSafe(key)
+  if (!d) return key
   return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
 
 /** "Sunday" */
 export function weekdayName(key: string): string {
-  return WEEKDAYS[parseKey(key).getDay()]
+  const d = parseSafe(key)
+  if (!d) return ''
+  return WEEKDAYS[d.getDay()]
+}
+
+/** Local calendar date of an ISO timestamp, as a display string. */
+export function timestampToLocalDate(iso: string): string {
+  const t = Date.parse(iso)
+  if (Number.isNaN(t)) return ''
+  return formatMedium(toKey(new Date(t)))
 }
 
 /** Human-friendly relative label where it helps. */

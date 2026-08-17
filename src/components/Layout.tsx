@@ -149,6 +149,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   key={to}
                   to={to}
                   className={({ isActive }) => `sheet-item${isActive ? ' sheet-active' : ''}`}
+                  onClick={() => setMoreOpen(false)}
                 >
                   <Ico size={20} />
                   <span>{label}</span>

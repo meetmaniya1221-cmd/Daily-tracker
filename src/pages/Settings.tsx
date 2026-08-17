@@ -2,7 +2,7 @@ import { useRef, useState, type ChangeEvent } from 'react'
 import { toast } from '../components/Toaster'
 import { Card, Modal, Segmented } from '../components/ui'
 import { IconAlertTriangle, IconDownload, IconUpload } from '../components/Icons'
-import { formatMedium } from '../lib/date'
+import { formatMedium, timestampToLocalDate } from '../lib/date'
 import { downloadBackup, parseBackup, type ParsedBackup } from '../lib/backup'
 import { storageAvailable } from '../lib/storage'
 import {
@@ -149,7 +149,7 @@ export function Settings() {
         <Modal title="Import backup" onClose={() => setPendingImport(null)}>
           <p className="confirm-body">
             {pendingImport.exportedAt
-              ? `Backup exported ${formatMedium(pendingImport.exportedAt.slice(0, 10))}. `
+              ? `Backup exported ${timestampToLocalDate(pendingImport.exportedAt)}. `
               : ''}
             It contains <b>{pendingImport.counts.entries}</b> daily entries
             {pendingImport.counts.firstEntry &&

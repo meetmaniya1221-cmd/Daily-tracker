@@ -38,9 +38,11 @@ export function parseBackup(text: string): ParsedBackup {
       error: 'The file is not a recognizable Daily Tracker backup (missing or invalid structure).',
     }
   }
+  const rawExportedAt =
+    raw && typeof raw === 'object' ? (raw as Record<string, unknown>).exportedAt : null
   const exportedAt =
-    raw && typeof raw === 'object' && typeof (raw as Record<string, unknown>).exportedAt === 'string'
-      ? ((raw as Record<string, unknown>).exportedAt as string)
+    typeof rawExportedAt === 'string' && !Number.isNaN(Date.parse(rawExportedAt))
+      ? rawExportedAt
       : null
   return { ok: true, data, counts: countData(data), exportedAt }
 }

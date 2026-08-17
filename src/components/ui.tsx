@@ -176,19 +176,28 @@ export function Modal({
   wide?: boolean
 }) {
   const ref = useRef<HTMLDivElement>(null)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
+  // Runs exactly once on mount: a re-render with a fresh onClose identity must
+  // never re-steal focus from an input the user is typing in.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') onCloseRef.current()
     }
     document.addEventListener('keydown', onKey)
-    // Move focus into the dialog so keyboard users land inside it.
-    const first = ref.current?.querySelector<HTMLElement>(
-      'button, [href], input, select, textarea',
-    )
-    first?.focus()
+    // Move focus into the dialog — unless something inside it (an autoFocus
+    // input) already has it. Prefer body controls over the header close button.
+    const root = ref.current
+    if (root && !root.contains(document.activeElement)) {
+      const target =
+        root.querySelector<HTMLElement>(
+          '.modal-body input, .modal-body select, .modal-body textarea, .modal-body button, .modal-body [href]',
+        ) ?? root.querySelector<HTMLElement>('button, [href], input, select, textarea')
+      target?.focus()
+    }
     return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [])
 
   return createPortal(
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>

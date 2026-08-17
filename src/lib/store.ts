@@ -1,14 +1,38 @@
 import { useSyncExternalStore } from 'react'
 import type { AppData, Priority, RecurrenceFreq, Task, ThemeName } from '../types'
-import { loadData, saveData, seedData, storageAvailable } from './storage'
-import { todayKey } from './date'
+import { STORAGE_KEY, loadData, saveData, seedData, storageAvailable } from './storage'
+import { isValidKey, todayKey } from './date'
 import { uid } from './id'
 import { catchUpRecurring, makeNextOccurrence } from './recurrence'
 import { mergeData } from './backup'
 import { SERIES_COUNT } from './palette'
+import { sanitizeAppData } from './validate'
+import { toast } from '../components/Toaster'
 
 let data: AppData = loadData()
 const listeners = new Set<() => void>()
+
+// Another tab wrote (or cleared) the shared storage key: adopt its snapshot so
+// a stale tab can never clobber newer data with its own next write.
+if (typeof window !== 'undefined' && storageAvailable) {
+  window.addEventListener('storage', (e) => {
+    if (e.key !== STORAGE_KEY) return
+    if (e.newValue === null) {
+      data = seedData()
+      emit()
+      return
+    }
+    try {
+      const clean = sanitizeAppData(JSON.parse(e.newValue))
+      if (clean) {
+        data = clean
+        emit()
+      }
+    } catch {
+      // malformed external write — keep our snapshot
+    }
+  })
+}
 
 export type PersistState = 'ok' | 'unavailable' | 'quota'
 let persistState: PersistState = storageAvailable ? 'ok' : 'unavailable'
@@ -20,7 +44,11 @@ function emit() {
 function commit(next: AppData) {
   data = next
   const result = saveData(next)
+  const wasOk = persistState === 'ok'
   persistState = result.ok ? 'ok' : result.reason
+  if (!result.ok && result.reason === 'quota' && wasOk) {
+    toast('Browser storage is full — this change was NOT saved.', 'error')
+  }
   emit()
 }
 
@@ -55,6 +83,9 @@ export function saveEntry(date: string, scores: Record<string, number>): void {
     const n = Math.round(v)
     if (Number.isFinite(n) && n >= 0 && n <= 10) clean[catId] = n
   }
+  // An entry with no scores would be dropped by the sanitizer on next load —
+  // never persist one.
+  if (Object.keys(clean).length === 0) return
   commit({
     ...data,
     entries: {
@@ -76,7 +107,7 @@ export function setSpending(date: string, amount: number | null): void {
   if (amount === null || !Number.isFinite(amount)) {
     delete spending[date]
   } else {
-    const clean = Math.round(Math.max(0, amount) * 100) / 100
+    const clean = Math.round(Math.min(1e12, Math.max(0, amount)) * 100) / 100
     spending[date] = { amount: clean, updatedAt: new Date().toISOString() }
   }
   commit({ ...data, spending })
@@ -203,12 +234,13 @@ export function addTask(input: TaskInput): string | null {
   const now = new Date().toISOString()
   const id = uid()
   const recurring = Boolean(input.recurrence)
+  const deadline = input.deadline && isValidKey(input.deadline) ? input.deadline : undefined
   const task: Task = {
     id,
     title: title.slice(0, 200),
     priority: input.priority,
     // Recurring tasks always carry a deadline — it anchors the schedule.
-    ...(input.deadline || recurring ? { deadline: input.deadline || todayKey() } : {}),
+    ...(deadline || recurring ? { deadline: deadline ?? todayKey() } : {}),
     completed: false,
     ...(recurring ? { recurrence: { freq: input.recurrence as RecurrenceFreq }, seriesId: id } : {}),
     createdAt: now,
@@ -218,38 +250,59 @@ export function addTask(input: TaskInput): string | null {
   return id
 }
 
+/** Remove the recurrence flag from every task of a series (the series ends). */
+function stripSeriesRecurrence(tasks: Task[], seriesId: string): Task[] {
+  return tasks.map((t) => {
+    if ((t.seriesId ?? t.id) !== seriesId || !t.recurrence) return t
+    const { recurrence: _dropped, ...rest } = t
+    return rest
+  })
+}
+
 export function updateTask(
   id: string,
   patch: Partial<Pick<Task, 'title' | 'priority' | 'deadline'>> & {
     recurrence?: RecurrenceFreq | null
   },
 ): void {
-  commit({
-    ...data,
-    tasks: data.tasks.map((t) => {
-      if (t.id !== id) return t
-      const next: Task = { ...t, updatedAt: new Date().toISOString() }
-      if (patch.title !== undefined) {
-        const title = patch.title.trim()
-        if (title) next.title = title.slice(0, 200)
+  const target = data.tasks.find((t) => t.id === id)
+  if (!target) return
+  const endsSeries = patch.recurrence === null && Boolean(target.recurrence)
+
+  let tasks = data.tasks.map((t) => {
+    if (t.id !== id) return t
+    const next: Task = { ...t, updatedAt: new Date().toISOString() }
+    if (patch.title !== undefined) {
+      const title = patch.title.trim()
+      if (title) next.title = title.slice(0, 200)
+    }
+    if (patch.priority !== undefined) next.priority = patch.priority
+    // Recurrence first: whether a deadline may be cleared depends on the
+    // recurrence state after this update, not before it.
+    if (patch.recurrence !== undefined) {
+      if (patch.recurrence) {
+        next.recurrence = { freq: patch.recurrence }
+        next.seriesId = next.seriesId ?? next.id
+      } else {
+        delete next.recurrence
       }
-      if (patch.priority !== undefined) next.priority = patch.priority
-      if (patch.deadline !== undefined) {
-        if (patch.deadline) next.deadline = patch.deadline
-        else if (!next.recurrence) delete next.deadline
-      }
-      if (patch.recurrence !== undefined) {
-        if (patch.recurrence) {
-          next.recurrence = { freq: patch.recurrence }
-          next.seriesId = next.seriesId ?? next.id
-          next.deadline = next.deadline ?? todayKey()
-        } else {
-          delete next.recurrence
-        }
-      }
-      return next
-    }),
+    }
+    if (patch.deadline !== undefined) {
+      if (patch.deadline && isValidKey(patch.deadline)) next.deadline = patch.deadline
+      else if (!next.recurrence) delete next.deadline
+    }
+    if (next.recurrence && !next.deadline) next.deadline = todayKey()
+    return next
   })
+
+  // Turning Repeat off ends the whole series: completed occurrences keep their
+  // history but stop counting as a live series, so the startup catch-up can
+  // never resurrect it.
+  if (endsSeries) {
+    tasks = stripSeriesRecurrence(tasks, target.seriesId ?? target.id)
+  }
+
+  commit({ ...data, tasks })
 }
 
 export function setTaskCompleted(id: string, completed: boolean): void {
@@ -293,7 +346,21 @@ export function setTaskCompleted(id: string, completed: boolean): void {
 }
 
 export function deleteTask(id: string): void {
-  commit({ ...data, tasks: data.tasks.filter((t) => t.id !== id) })
+  const target = data.tasks.find((t) => t.id === id)
+  if (!target) return
+  let tasks = data.tasks.filter((t) => t.id !== id)
+  // Deleting the last pending occurrence of a recurring series ends the
+  // series — otherwise the startup catch-up would resurrect it forever.
+  if (target.recurrence) {
+    const seriesId = target.seriesId ?? target.id
+    const hasPending = tasks.some(
+      (t) => (t.seriesId ?? t.id) === seriesId && t.recurrence && !t.completed,
+    )
+    if (!hasPending) {
+      tasks = stripSeriesRecurrence(tasks, seriesId)
+    }
+  }
+  commit({ ...data, tasks })
 }
 
 /** Ensure every recurring series has a pending occurrence (run at startup). */
@@ -313,10 +380,12 @@ export function setTheme(theme: ThemeName | null): void {
 export function replaceAllData(next: AppData): void {
   // Keep the current theme choice unless the import explicitly carries one.
   commit({ ...next, settings: { theme: next.settings.theme ?? data.settings.theme } })
+  runRecurringCatchUp()
 }
 
 export function mergeImportedData(imported: AppData): void {
   commit(mergeData(data, imported))
+  runRecurringCatchUp()
 }
 
 export function clearAllData(): void {

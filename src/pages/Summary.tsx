@@ -152,9 +152,9 @@ export function Summary() {
         </button>
       </div>
 
-      {stats.entries === 0 ? (
+      {stats.entries === 0 && stats.spending === 0 && stats.tasksDone === 0 ? (
         <Card>
-          <EmptyState title={`No entries in this ${mode === 'weekly' ? 'week' : 'month'}`}>
+          <EmptyState title={`Nothing recorded in this ${mode === 'weekly' ? 'week' : 'month'}`}>
             <p>Summaries appear once days in this period are tracked.</p>
           </EmptyState>
         </Card>
