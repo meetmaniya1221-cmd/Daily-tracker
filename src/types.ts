@@ -22,9 +22,18 @@ export interface DailyEntry {
   updatedAt: string
 }
 
-export interface SpendingRecord {
-  /** Rupees spent that day, >= 0. */
+export interface SpendItem {
+  /** What / where the money went. May be empty for a quick unlabeled entry. */
+  label: string
+  /** Rupees, >= 0. */
   amount: number
+}
+
+export interface SpendingRecord {
+  /** Total rupees spent that day — always the sum of items when items exist. */
+  amount: number
+  /** Optional breakdown of the day's spending. */
+  items?: SpendItem[]
   updatedAt: string
 }
 

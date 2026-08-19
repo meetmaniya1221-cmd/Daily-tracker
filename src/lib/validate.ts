@@ -1,5 +1,5 @@
 import type {
-  AppData, Category, DailyEntry, Priority, RecurrenceFreq, SpendingRecord, Task,
+  AppData, Category, DailyEntry, Priority, RecurrenceFreq, SpendItem, SpendingRecord, Task,
 } from '../types'
 import { isValidKey, todayKey } from './date'
 import { uid } from './id'
@@ -136,9 +136,39 @@ function sanitizeEntry(key: string, raw: unknown): DailyEntry | null {
   }
 }
 
+const MAX_SPEND_ITEMS = 50
+
 function sanitizeSpending(key: string, raw: unknown): SpendingRecord | null {
   if (!isValidKey(key) || !raw || typeof raw !== 'object') return null
   const s = raw as Record<string, unknown>
+
+  // Itemized record: the items are authoritative, the total is their sum.
+  const items: SpendItem[] = []
+  if (Array.isArray(s.items)) {
+    for (const rawItem of (s.items as unknown[]).slice(0, MAX_SPEND_ITEMS)) {
+      if (!rawItem || typeof rawItem !== 'object') continue
+      const it = rawItem as Record<string, unknown>
+      if (
+        typeof it.amount !== 'number' ||
+        !Number.isFinite(it.amount) ||
+        it.amount < 0 ||
+        it.amount > 1e12
+      ) {
+        continue
+      }
+      items.push({
+        label: typeof it.label === 'string' ? it.label.trim().slice(0, 80) : '',
+        amount: Math.round(it.amount * 100) / 100,
+      })
+    }
+  }
+  if (items.length > 0) {
+    const total = Math.round(items.reduce((a, b) => a + b.amount, 0) * 100) / 100
+    if (total > 1e12) return null
+    return { amount: total, items, updatedAt: isoUpdatedAt(s.updatedAt, null) }
+  }
+
+  // Plain daily total (records from before itemization, or without detail).
   if (typeof s.amount !== 'number' || !Number.isFinite(s.amount) || s.amount < 0) return null
   if (s.amount > 1e12) return null // absurd values would overflow formatting
   return { amount: Math.round(s.amount * 100) / 100, updatedAt: isoUpdatedAt(s.updatedAt, null) }

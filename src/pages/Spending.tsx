@@ -1,5 +1,12 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { SpendingChart, type SpendingPoint } from '../components/charts/SpendingChart'
+import {
+  SpendItemsEditor,
+  parseSpendRows,
+  rowsFromRecord,
+  spendBreakdown,
+  type SpendRow,
+} from '../components/SpendItemsEditor'
 import { toast } from '../components/Toaster'
 import { Card, EmptyState, Modal, Segmented, StatTile } from '../components/ui'
 import { IconEdit } from '../components/Icons'
@@ -13,8 +20,9 @@ import {
   weekdayName,
 } from '../lib/date'
 import { formatINR } from '../lib/format'
-import { setSpending, useAppData } from '../lib/store'
+import { setSpendingItems, useAppData } from '../lib/store'
 import { spendingAllTime, spendingInRange } from '../lib/stats'
+import type { SpendingRecord } from '../types'
 
 type ChartRange = '14' | '30' | '90'
 
@@ -44,7 +52,7 @@ export function Spending() {
     () =>
       Object.entries(data.spending)
         .sort(([a], [b]) => (a < b ? 1 : -1))
-        .map(([date, rec]) => ({ date, amount: rec.amount })),
+        .map(([date, rec]) => ({ date, rec })),
     [data.spending],
   )
   const visibleRecords = showAll ? records : records.slice(0, 30)
@@ -54,7 +62,7 @@ export function Spending() {
       <header className="page-head">
         <div>
           <h1>Spending</h1>
-          <p className="page-sub">One amount per day — nothing more</p>
+          <p className="page-sub">What you spent each day — with optional what-and-where detail</p>
         </div>
       </header>
 
@@ -103,25 +111,29 @@ export function Spending() {
         ) : (
           <>
             <ul className="record-list">
-              {visibleRecords.map((r) => (
-                <li key={r.date} className="record-row">
-                  <div className="record-date">
-                    <span>{formatMedium(r.date)}</span>
-                    <span className="record-day">
-                      {relativeLabel(r.date, today) ?? weekdayName(r.date)}
-                    </span>
-                  </div>
-                  <span className="record-amount">{formatINR(r.amount)}</span>
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    aria-label={`Edit spending for ${formatMedium(r.date)}`}
-                    onClick={() => setEditing(r.date)}
-                  >
-                    <IconEdit size={15} />
-                  </button>
-                </li>
-              ))}
+              {visibleRecords.map((r) => {
+                const breakdown = spendBreakdown(r.rec)
+                return (
+                  <li key={r.date} className="record-row">
+                    <div className="record-date">
+                      <span>{formatMedium(r.date)}</span>
+                      <span className="record-day">
+                        {relativeLabel(r.date, today) ?? weekdayName(r.date)}
+                      </span>
+                    </div>
+                    <span className="record-amount">{formatINR(r.rec.amount)}</span>
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      aria-label={`Edit spending for ${formatMedium(r.date)}`}
+                      onClick={() => setEditing(r.date)}
+                    >
+                      <IconEdit size={15} />
+                    </button>
+                    {breakdown && <div className="record-items">{breakdown}</div>}
+                  </li>
+                )
+              })}
             </ul>
             {records.length > 30 && !showAll && (
               <button type="button" className="btn btn-small" onClick={() => setShowAll(true)}>
@@ -135,7 +147,7 @@ export function Spending() {
       {editing && (
         <SpendEditModal
           date={editing}
-          initial={data.spending[editing]?.amount ?? null}
+          initial={data.spending[editing]}
           onClose={() => setEditing(null)}
         />
       )}
@@ -149,58 +161,34 @@ function SpendEditModal({
   onClose,
 }: {
   date: string
-  initial: number | null
+  initial: SpendingRecord | undefined
   onClose: () => void
 }) {
-  const [value, setValue] = useState(initial !== null ? String(initial) : '')
+  const [rows, setRows] = useState<SpendRow[]>(() => rowsFromRecord(initial))
   const [error, setError] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
 
   const save = () => {
-    if (inputRef.current?.validity.badInput) {
-      setError('Enter a number of ₹0 or more.')
+    const parsed = parseSpendRows(rows)
+    if (!parsed.ok) {
+      setError(parsed.error)
       return
     }
-    const trimmed = value.trim()
-    if (trimmed === '') {
-      setSpending(date, null)
-      toast('Spending removed')
-      onClose()
-      return
-    }
-    const n = Number(trimmed)
-    if (!Number.isFinite(n) || n < 0) {
-      setError('Enter a number of ₹0 or more.')
-      return
-    }
-    setSpending(date, n)
-    toast('Spending saved')
+    setSpendingItems(date, parsed.items)
+    toast(parsed.items.length === 0 ? 'Spending removed' : 'Spending saved')
     onClose()
   }
 
   return (
     <Modal title={`Spending — ${formatMedium(date)}`} onClose={onClose}>
-      <label className="field-label" htmlFor="spend-edit">
-        Amount spent (₹)
-      </label>
-      <input
-        id="spend-edit"
-        ref={inputRef}
-        type="number"
-        inputMode="decimal"
-        min={0}
-        step="0.01"
-        className="input input-amount"
-        value={value}
-        autoFocus
-        onChange={(e) => {
-          setValue(e.target.value)
+      <SpendItemsEditor
+        rows={rows}
+        onChange={(next) => {
+          setRows(next)
           setError(null)
         }}
-        onKeyDown={(e) => e.key === 'Enter' && save()}
       />
       {error && <p className="field-error">{error}</p>}
-      <p className="field-hint">Leave blank to remove the record for this day.</p>
+      <p className="field-hint">Remove every item to clear the record for this day.</p>
       <div className="modal-footer">
         <button type="button" className="btn" onClick={onClose}>
           Cancel

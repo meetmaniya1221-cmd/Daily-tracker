@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ScorePicker } from '../components/ScorePicker'
+import {
+  SpendItemsEditor,
+  parseSpendRows,
+  rowsFromRecord,
+  type SpendRow,
+} from '../components/SpendItemsEditor'
 import { toast } from '../components/Toaster'
 import { Card } from '../components/ui'
 import {
@@ -11,7 +17,7 @@ import { addDays, formatFull, isValidKey, relativeLabel, todayKey } from '../lib
 import { formatScore } from '../lib/format'
 import { seriesColor } from '../lib/palette'
 import { categoryMap, activeCategories } from '../lib/selectors'
-import { saveEntry, setSpending, useAppData } from '../lib/store'
+import { saveEntry, setSpendingItems, useAppData } from '../lib/store'
 import { scoreLabel } from '../lib/stats'
 import { useEffectiveTheme } from '../lib/theme'
 
@@ -28,14 +34,13 @@ export function DailyEntry() {
   const catMap = categoryMap(data)
 
   const [scores, setScores] = useState<Record<string, number>>({})
-  const [spendingStr, setSpendingStr] = useState('')
+  const [spendRows, setSpendRows] = useState<SpendRow[]>([])
   const [spendingError, setSpendingError] = useState<string | null>(null)
 
   useEffect(() => {
     const existing = data.entries[date]
     setScores(existing ? { ...existing.scores } : {})
-    const rec = data.spending[date]
-    setSpendingStr(rec ? String(rec.amount) : '')
+    setSpendRows(rowsFromRecord(data.spending[date]))
     setSpendingError(null)
     // Reload the form only when the selected date changes — edits in progress
     // for the same date must not be clobbered by store updates.
@@ -74,28 +79,13 @@ export function DailyEntry() {
 
   const onSave = () => {
     if (!complete) return
-    // A number input with unparseable text reports value '' but badInput true —
-    // don't mistake that for "field intentionally left blank".
-    const spendEl = document.getElementById('entry-spending') as HTMLInputElement | null
-    if (spendEl?.validity.badInput) {
-      setSpendingError('Spending must be a number of ₹0 or more.')
+    const parsed = parseSpendRows(spendRows)
+    if (!parsed.ok) {
+      setSpendingError(parsed.error)
       return
     }
-    const trimmed = spendingStr.trim()
-    let amount: number | null = null
-    if (trimmed !== '') {
-      amount = Number(trimmed)
-      if (!Number.isFinite(amount) || amount < 0) {
-        setSpendingError('Spending must be a number of ₹0 or more.')
-        return
-      }
-    }
     saveEntry(date, scores)
-    if (amount === null) {
-      if (data.spending[date]) setSpending(date, null)
-    } else {
-      setSpending(date, amount)
-    }
+    setSpendingItems(date, parsed.items)
     toast(entry ? 'Entry updated' : 'Entry saved')
   }
 
@@ -239,28 +229,15 @@ export function DailyEntry() {
         </div>
       </Card>
 
-      <Card>
-        <div className="spend-row">
-          <label className="field-label" htmlFor="entry-spending">
-            Spent on this day (₹)
-          </label>
-          <input
-            id="entry-spending"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.01"
-            placeholder="0"
-            className="input input-amount"
-            value={spendingStr}
-            onChange={(e) => {
-              setSpendingStr(e.target.value)
-              setSpendingError(null)
-            }}
-          />
-        </div>
+      <Card title="Spending" subtitle="How much went where — labels are optional">
+        <SpendItemsEditor
+          rows={spendRows}
+          onChange={(rows) => {
+            setSpendRows(rows)
+            setSpendingError(null)
+          }}
+        />
         {spendingError && <p className="field-error">{spendingError}</p>}
-        <p className="field-hint">Optional — leave blank if you spent nothing or don't want to record it.</p>
       </Card>
 
       <div className="save-bar">

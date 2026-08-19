@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, EmptyState, ScoreBar } from '../components/ui'
 import { IconChevronLeft, IconChevronRight, IconPencil } from '../components/Icons'
+import { spendBreakdown } from '../components/SpendItemsEditor'
 import {
   addDays,
   addMonthsClamped,
@@ -49,7 +50,7 @@ export function CalendarPage() {
 
   const entry = data.entries[selected]
   const overall = entry ? overallOf(entry) : null
-  const spend = data.spending[selected]?.amount
+  const spendRec = data.spending[selected]
   const dayTasks = data.tasks
     .filter((t) => t.deadline === selected)
     .sort((a, b) => Number(a.completed) - Number(b.completed))
@@ -175,7 +176,10 @@ export function CalendarPage() {
         <div className="day-extras">
           <div className="day-extra">
             <span className="stat-label">Spending</span>
-            <span>{spend !== undefined ? formatINR(spend) : 'Not recorded'}</span>
+            <span>{spendRec ? formatINR(spendRec.amount) : 'Not recorded'}</span>
+            {spendRec && spendBreakdown(spendRec) && (
+              <span className="record-items">{spendBreakdown(spendRec)}</span>
+            )}
           </div>
           <div className="day-extra">
             <span className="stat-label">

@@ -1349,8 +1349,9 @@ select.input {
 
 .record-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 4px 12px;
   padding: 10px 4px;
   border-bottom: 1px solid var(--border-soft);
 }
@@ -1368,6 +1369,7 @@ select.input {
 .record-date span:first-child {
   font-weight: 570;
   font-size: 14px;
+  white-space: nowrap;
 }
 
 .record-day {
@@ -1382,6 +1384,60 @@ select.input {
 
 .spend-today {
   padding: 4px 0;
+}
+
+.record-items {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 12px;
+  padding-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+/* spending item editor */
+.spend-items {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.spend-items-empty {
+  margin-top: 0;
+}
+
+.spend-item-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 128px 34px;
+  gap: 8px;
+  align-items: center;
+}
+
+.spend-item-amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.spend-items-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 3px;
+}
+
+.spend-total {
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+
+.spend-total b {
+  color: var(--ink);
+  font-weight: 680;
+}
+
+@media (max-width: 430px) {
+  .spend-item-row {
+    grid-template-columns: minmax(0, 1fr) 104px 34px;
+  }
 }
 
 /* ============================================================ categories */

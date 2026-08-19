@@ -102,13 +102,30 @@ export function saveEntry(date: string, scores: Record<string, number>): void {
 
 // ---------------------------------------------------------------- spending
 
-export function setSpending(date: string, amount: number | null): void {
+export interface SpendItemInput {
+  label: string
+  amount: number
+}
+
+/**
+ * Replace a day's spending with the given items (how much went where).
+ * The daily total is always the sum of the items. An empty list removes the
+ * record for that day.
+ */
+export function setSpendingItems(date: string, itemsIn: SpendItemInput[]): void {
+  const items = itemsIn
+    .filter((i) => Number.isFinite(i.amount) && i.amount >= 0)
+    .slice(0, 50)
+    .map((i) => ({
+      label: i.label.trim().slice(0, 80),
+      amount: Math.round(Math.min(1e12, i.amount) * 100) / 100,
+    }))
   const spending = { ...data.spending }
-  if (amount === null || !Number.isFinite(amount)) {
+  if (items.length === 0) {
     delete spending[date]
   } else {
-    const clean = Math.round(Math.min(1e12, Math.max(0, amount)) * 100) / 100
-    spending[date] = { amount: clean, updatedAt: new Date().toISOString() }
+    const amount = Math.round(items.reduce((a, b) => a + b.amount, 0) * 100) / 100
+    spending[date] = { amount, items, updatedAt: new Date().toISOString() }
   }
   commit({ ...data, spending })
 }

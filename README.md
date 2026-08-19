@@ -19,8 +19,9 @@ localStorage, with JSON export/import for backup.
   axes follow your active categories automatically.
 - **Score Trends** — overall and per-category line charts over 7 days to
   all time; focus one category or compare several.
-- **Spending** — one rupee amount per day, ₹ formatting, today/week/month/
-  all-time totals and a daily bar chart. Deliberately nothing more.
+- **Spending** — record each day's spending as simple line items (how much,
+  and optionally what/where), ₹ formatting, today/week/month/all-time totals
+  and a daily bar chart. No budgets, income or bank accounts — deliberately.
 - **Tasks** — lightweight to-dos with priority, deadline and daily/weekly/
   monthly recurrence (completing an occurrence schedules the next one).
 - **Calendar & History** — month grid showing tracked days, tasks and
