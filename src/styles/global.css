@@ -395,6 +395,43 @@ button:disabled {
   gap: 4px;
 }
 
+/* ============================================================ quote of the day */
+
+.quote-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 18px;
+  border-radius: 14px;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.quote-block {
+  margin: 0;
+  min-width: 0;
+}
+
+.quote-text {
+  font-size: 15px;
+  line-height: 1.55;
+  font-style: italic;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.quote-author {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-style: normal;
+}
+
+.quote-card .icon-btn {
+  flex-shrink: 0;
+}
+
 /* ============================================================ hero */
 
 .hero-card {

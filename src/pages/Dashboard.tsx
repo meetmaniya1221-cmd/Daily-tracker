@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LifeRadar } from '../components/charts/LifeRadar'
-import { IconFlame, IconPencil } from '../components/Icons'
+import { IconFlame, IconPencil, IconRestore } from '../components/Icons'
 import { Card, EmptyState, ScoreBar, StatTile } from '../components/ui'
 import { formatFull, todayKey } from '../lib/date'
 import { formatINR, formatScore } from '../lib/format'
@@ -15,12 +15,14 @@ import {
   scoreLabel,
   streakInfo,
 } from '../lib/stats'
+import { anotherQuote, quoteForDate, type Quote } from '../lib/quotes'
 import { useEffectiveTheme } from '../lib/theme'
 
 export function Dashboard() {
   const data = useAppData()
   const theme = useEffectiveTheme()
   const today = todayKey()
+  const [quote, setQuote] = useState<Quote>(() => quoteForDate(today))
   const entry = data.entries[today]
   const overall = entry ? overallOf(entry) : null
   const streak = streakInfo(data.entries, today)
@@ -74,6 +76,21 @@ export function Dashboard() {
           <span className="streak-note">{streak.todayDone ? 'tracked today' : 'today pending'}</span>
         </div>
       </header>
+
+      <div className="quote-card">
+        <blockquote className="quote-block">
+          <p className="quote-text">“{quote.text}”</p>
+          <footer className="quote-author">— {quote.author}</footer>
+        </blockquote>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label="Show another quote"
+          onClick={() => setQuote((q) => anotherQuote(q))}
+        >
+          <IconRestore size={15} />
+        </button>
+      </div>
 
       {entry && overall !== null ? (
         <Card className="hero-card">
