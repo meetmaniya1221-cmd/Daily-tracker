@@ -6,6 +6,15 @@ export function useChartTokens(): ChartTokens {
   return chartTokens(useEffectiveTheme())
 }
 
+/**
+ * Series animations stay OFF: recharts' draw-in intermittently leaves series
+ * unrendered under React StrictMode double-mounts — data must never vanish.
+ * Charts get their entrance from the page's card rise-in instead.
+ */
+export function chartAnimation(): { isAnimationActive: boolean } {
+  return { isAnimationActive: false }
+}
+
 interface TipEntry {
   dataKey?: string | number
   name?: string | number

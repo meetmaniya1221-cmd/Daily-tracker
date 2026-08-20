@@ -9,7 +9,7 @@ import {
 } from 'recharts'
 import { formatMedium, formatShort } from '../../lib/date'
 import { formatINR, formatINRCompact } from '../../lib/format'
-import { ChartTip, useChartTokens } from './ChartBits'
+import { ChartTip, chartAnimation, useChartTokens } from './ChartBits'
 
 export interface SpendingPoint {
   date: string
@@ -59,7 +59,7 @@ export function SpendingChart({
           fill={t.accent}
           maxBarSize={24}
           radius={[4, 4, 0, 0]}
-          isAnimationActive={false}
+          {...chartAnimation()}
         />
       </BarChart>
     </ResponsiveContainer>

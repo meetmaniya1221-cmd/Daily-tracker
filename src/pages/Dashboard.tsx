@@ -16,6 +16,7 @@ import {
   streakInfo,
 } from '../lib/stats'
 import { anotherQuote, quoteForDate, type Quote } from '../lib/quotes'
+import { useCountUp } from '../lib/useCountUp'
 import { useEffectiveTheme } from '../lib/theme'
 
 export function Dashboard() {
@@ -25,6 +26,7 @@ export function Dashboard() {
   const [quote, setQuote] = useState<Quote>(() => quoteForDate(today))
   const entry = data.entries[today]
   const overall = entry ? overallOf(entry) : null
+  const animatedOverall = useCountUp(overall)
   const streak = streakInfo(data.entries, today)
   const life = lifeScores(data.entries, today)
   const allEntries = useMemo(() => Object.values(data.entries), [data.entries])
@@ -78,7 +80,7 @@ export function Dashboard() {
       </header>
 
       <div className="quote-card">
-        <blockquote className="quote-block">
+        <blockquote className="quote-block" key={quote.text}>
           <p className="quote-text">“{quote.text}”</p>
           <footer className="quote-author">— {quote.author}</footer>
         </blockquote>
@@ -97,7 +99,7 @@ export function Dashboard() {
           <div className="hero-row">
             <div>
               <div className="hero-number">
-                {formatScore(overall)}
+                {formatScore(animatedOverall ?? overall)}
                 <span className="hero-max">/10</span>
               </div>
               <div className="hero-label">{scoreLabel(overall)}</div>

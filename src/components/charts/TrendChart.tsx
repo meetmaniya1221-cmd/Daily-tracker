@@ -10,7 +10,7 @@ import {
 } from 'recharts'
 import { formatMedium } from '../../lib/date'
 import { formatScore } from '../../lib/format'
-import { ChartLegend, ChartTip, useChartTokens } from './ChartBits'
+import { ChartLegend, ChartTip, chartAnimation, useChartTokens } from './ChartBits'
 
 export interface TrendSeries {
   key: string
@@ -75,7 +75,7 @@ export function TrendChart({
             dot={false}
             activeDot={{ r: 4, strokeWidth: 2, stroke: t.surface }}
             connectNulls
-            isAnimationActive={false}
+            {...chartAnimation()}
           />
         ))}
       </LineChart>

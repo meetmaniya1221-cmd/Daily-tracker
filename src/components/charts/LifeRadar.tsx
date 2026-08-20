@@ -9,7 +9,7 @@ import {
   Tooltip,
 } from 'recharts'
 import { formatScore } from '../../lib/format'
-import { ChartLegend, ChartTip, useChartTokens } from './ChartBits'
+import { ChartLegend, ChartTip, chartAnimation, useChartTokens } from './ChartBits'
 
 export interface RadarAxisDef {
   id: string
@@ -89,7 +89,7 @@ export function LifeRadar({
             fill="none"
             fillOpacity={0}
             dot={{ r: 2.5, fill: t.muted, strokeWidth: 0 }}
-            isAnimationActive={false}
+            {...chartAnimation()}
           />
         )}
         {hasDay && (
@@ -101,7 +101,7 @@ export function LifeRadar({
             fill={t.accent}
             fillOpacity={0.14}
             dot={{ r: 3, fill: t.accent, strokeWidth: 2, stroke: t.surface }}
-            isAnimationActive={false}
+            {...chartAnimation()}
           />
         )}
         {layerCount >= 2 && <Legend content={<ChartLegend />} />}

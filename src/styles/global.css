@@ -81,6 +81,12 @@
   --press-sm: inset -2px -2px 5px var(--light-sh), inset 2px 2px 6px var(--dark-sh);
 }
 
+/* Motion system: one spring (overshoots, feels physical) + one glide. */
+:root {
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --glide: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 /* ============================================================ reset & base */
 
 *,
@@ -252,8 +258,20 @@ button:disabled {
   transition: box-shadow 180ms ease, color 140ms ease, background 180ms ease;
 }
 
+.nav-item svg {
+  transition: transform 240ms var(--spring);
+}
+
 .nav-item:hover {
   color: var(--ink);
+}
+
+.nav-item:hover svg {
+  transform: translateX(2px) scale(1.06);
+}
+
+.nav-item.nav-active svg {
+  animation: pop 280ms var(--spring);
 }
 
 .nav-item.nav-active {
@@ -311,6 +329,40 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 22px;
+}
+
+/* staggered entrance: each section rises softly into place */
+.page > * {
+  animation: rise-in 460ms var(--glide) backwards;
+}
+
+.page > *:nth-child(2) {
+  animation-delay: 45ms;
+}
+.page > *:nth-child(3) {
+  animation-delay: 90ms;
+}
+.page > *:nth-child(4) {
+  animation-delay: 135ms;
+}
+.page > *:nth-child(5) {
+  animation-delay: 180ms;
+}
+.page > *:nth-child(6) {
+  animation-delay: 225ms;
+}
+.page > *:nth-child(7) {
+  animation-delay: 270ms;
+}
+.page > *:nth-child(n + 8) {
+  animation-delay: 310ms;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
 }
 
 .page-head {
@@ -485,6 +537,22 @@ button:disabled {
 .quote-block {
   margin: 0;
   min-width: 0;
+  animation: quote-in 420ms var(--glide);
+}
+
+@keyframes quote-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.quote-card .icon-btn svg {
+  transition: transform 450ms var(--spring);
+}
+
+.quote-card .icon-btn:active svg {
+  transform: rotate(-180deg);
 }
 
 .quote-text {
@@ -599,6 +667,15 @@ button:disabled {
   inset: 2px auto 2px 2px;
   border-radius: 999px;
   transition: width 260ms ease;
+  transform-origin: left center;
+  animation: fill-in 650ms var(--glide) backwards;
+  animation-delay: 180ms;
+}
+
+@keyframes fill-in {
+  from {
+    transform: scaleX(0);
+  }
 }
 
 .cat-dot {
@@ -637,11 +714,30 @@ button:disabled {
 .streak-alive svg {
   color: var(--ember);
   filter: drop-shadow(0 0 6px rgba(232, 133, 61, 0.55));
+  animation: flicker 2.6s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+@keyframes flicker {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  38% {
+    transform: scale(1.09) rotate(-3deg);
+    opacity: 0.92;
+  }
+  62% {
+    transform: scale(1.04) rotate(2deg);
+  }
 }
 
 /* ============================================================ buttons & controls */
 
 .btn {
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -654,7 +750,7 @@ button:disabled {
   color: var(--ink-2);
   font-size: 13.5px;
   font-weight: 600;
-  transition: box-shadow 160ms ease, color 140ms ease, transform 120ms ease;
+  transition: box-shadow 180ms ease, color 140ms ease, transform 220ms var(--spring);
 }
 
 .btn:hover:not(:disabled) {
@@ -664,7 +760,24 @@ button:disabled {
 .btn:active:not(:disabled) {
   box-shadow: var(--press-sm);
   background: var(--concave);
-  transform: none;
+  transform: scale(0.965);
+}
+
+/* click flash on primary actions */
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.35) 0%, transparent 65%);
+  opacity: 0;
+  transition: opacity 550ms ease;
+  pointer-events: none;
+}
+
+.btn-primary:active::after {
+  opacity: 1;
+  transition: none;
 }
 
 .btn-primary {
@@ -724,7 +837,7 @@ button:disabled {
   background: var(--convex);
   box-shadow: var(--raise-sm);
   border: 1px solid var(--border-soft);
-  transition: box-shadow 160ms ease, color 140ms ease;
+  transition: box-shadow 180ms ease, color 140ms ease, transform 220ms var(--spring);
   flex-shrink: 0;
 }
 
@@ -735,6 +848,7 @@ button:disabled {
 .icon-btn:active:not(:disabled) {
   box-shadow: var(--press-sm);
   background: var(--concave);
+  transform: scale(0.88);
 }
 
 .link {
@@ -769,11 +883,15 @@ button:disabled {
   font-weight: 570;
   max-width: 100%;
   overflow-wrap: anywhere;
-  transition: box-shadow 160ms ease, color 140ms ease;
+  transition: box-shadow 180ms ease, color 140ms ease, transform 200ms var(--spring);
 }
 
 .chip:hover {
   color: var(--ink);
+}
+
+.chip:active {
+  transform: scale(0.94);
 }
 
 .chip-selected {
@@ -781,6 +899,16 @@ button:disabled {
   box-shadow: var(--press-sm);
   color: var(--ink);
   font-weight: 640;
+  animation: pop 260ms var(--spring);
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .chip-swatch {
@@ -819,6 +947,7 @@ button:disabled {
   color: var(--accent);
   box-shadow: var(--raise-sm);
   font-weight: 660;
+  animation: pop 240ms var(--spring);
 }
 
 /* inputs: pressed wells */
@@ -963,7 +1092,8 @@ select.input {
   font-size: 13.5px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
-  transition: box-shadow 140ms ease, color 120ms ease, background 140ms ease;
+  transition: box-shadow 160ms ease, color 120ms ease, background 160ms ease,
+    transform 220ms var(--spring);
 }
 
 .score-cell:hover {
@@ -973,6 +1103,7 @@ select.input {
 .score-cell:active {
   box-shadow: var(--press-sm);
   background: var(--concave);
+  transform: scale(0.92);
 }
 
 .score-cell-selected {
@@ -980,6 +1111,7 @@ select.input {
   box-shadow: var(--press-sm), 0 0 12px var(--accent-glow);
   color: var(--accent);
   text-shadow: 0 0 10px var(--accent-glow);
+  animation: pop 280ms var(--spring);
 }
 
 @media (max-width: 430px) {
@@ -1202,6 +1334,19 @@ select.input {
   background-color: var(--accent);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
   box-shadow: var(--raise-sm), 0 0 10px var(--accent-glow);
+  animation: check-pop 340ms var(--spring);
+}
+
+@keyframes check-pop {
+  0% {
+    transform: scale(0.6);
+  }
+  55% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .task-title {
@@ -1307,12 +1452,16 @@ select.input {
   padding: 8px 2px 6px;
   border-radius: 14px;
   background: transparent;
-  transition: box-shadow 160ms ease, background 160ms ease;
+  transition: box-shadow 160ms ease, background 160ms ease, transform 200ms var(--spring);
 }
 
 .cal-cell:hover {
   background: var(--convex);
   box-shadow: var(--raise-sm);
+}
+
+.cal-cell:active {
+  transform: scale(0.93);
 }
 
 .cal-outside {
@@ -1329,6 +1478,7 @@ select.input {
 .cal-selected:hover {
   background: var(--concave);
   box-shadow: var(--press-sm), 0 0 10px var(--accent-glow);
+  animation: pop 240ms var(--spring);
 }
 
 .cal-daynum {
@@ -1776,7 +1926,7 @@ select.input {
   border-radius: 22px;
   padding: 22px;
   box-shadow: var(--raise-lg), 0 26px 60px rgba(0, 0, 0, 0.45);
-  animation: pop-in 160ms ease;
+  animation: pop-in 300ms var(--glide);
 }
 
 .modal-wide {
@@ -1830,9 +1980,16 @@ select.input {
 }
 
 @keyframes pop-in {
-  from {
+  0% {
     opacity: 0;
-    transform: scale(0.96) translateY(6px);
+    transform: scale(0.92) translateY(10px);
+  }
+  70% {
+    transform: scale(1.01) translateY(-1px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
 
@@ -1860,7 +2017,7 @@ select.input {
   font-size: 13.5px;
   font-weight: 570;
   box-shadow: var(--raise-lg), 0 12px 34px rgba(0, 0, 0, 0.4);
-  animation: toast-in 200ms ease;
+  animation: toast-in 340ms var(--spring);
   max-width: min(90vw, 460px);
   text-align: center;
 }
@@ -1875,9 +2032,16 @@ select.input {
 }
 
 @keyframes toast-in {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(16px) scale(0.92);
+  }
+  70% {
+    transform: translateY(-2px) scale(1.015);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -2000,6 +2164,16 @@ select.input {
   .bottom-item.bottom-active svg {
     color: var(--accent);
     filter: drop-shadow(0 0 6px var(--accent-glow));
+    animation: check-pop 340ms var(--spring);
+  }
+
+  .bottom-item:active {
+    transform: scale(0.92);
+  }
+
+  .bottom-item {
+    transition: box-shadow 160ms ease, color 140ms ease, background 160ms ease,
+      transform 200ms var(--spring);
   }
 
   .save-bar {
