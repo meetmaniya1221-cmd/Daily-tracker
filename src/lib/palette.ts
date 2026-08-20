@@ -31,28 +31,29 @@ export interface ChartTokens {
   border: string
 }
 
+// Neumorphic surfaces: charts sit directly on the soft-UI base color.
 const LIGHT: ChartTokens = {
-  surface: '#fcfcfb',
-  ink: '#0b0b0b',
-  secondary: '#52514e',
-  muted: '#898781',
-  grid: '#e1e0d9',
-  baseline: '#c3c2b7',
+  surface: '#e6e9f0',
+  ink: '#2b2e33',
+  secondary: '#565b64',
+  muted: '#8b8f99',
+  grid: '#d2d6df',
+  baseline: '#b3b9c6',
   accent: '#2a78d6',
-  accentSoft: 'rgba(42, 120, 214, 0.10)',
-  border: 'rgba(11, 11, 11, 0.10)',
+  accentSoft: 'rgba(42, 120, 214, 0.12)',
+  border: 'rgba(43, 46, 51, 0.12)',
 }
 
 const DARK: ChartTokens = {
-  surface: '#1a1a19',
-  ink: '#ffffff',
-  secondary: '#c3c2b7',
-  muted: '#898781',
-  grid: '#2c2c2a',
-  baseline: '#383835',
+  surface: '#1c1c1e',
+  ink: '#f2f2f5',
+  secondary: '#b9b9c0',
+  muted: '#7e7e86',
+  grid: '#2a2a2e',
+  baseline: '#3a3a3f',
   accent: '#3987e5',
-  accentSoft: 'rgba(57, 135, 229, 0.12)',
-  border: 'rgba(255, 255, 255, 0.10)',
+  accentSoft: 'rgba(57, 135, 229, 0.14)',
+  border: 'rgba(255, 255, 255, 0.08)',
 }
 
 export function chartTokens(theme: ThemeName): ChartTokens {
