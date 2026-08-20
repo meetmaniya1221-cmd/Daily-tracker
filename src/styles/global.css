@@ -149,7 +149,6 @@ button:disabled {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 8px;
 }
 
 .visually-hidden {
@@ -262,12 +261,18 @@ button:disabled {
   transition: transform 240ms var(--spring);
 }
 
-.nav-item:hover {
-  color: var(--ink);
-}
+@media (hover: hover) {
+  .nav-item:hover {
+    color: var(--ink);
+  }
 
-.nav-item:hover svg {
-  transform: translateX(2px) scale(1.06);
+  .nav-item:hover svg {
+    transform: translateX(2px) scale(1.06);
+  }
+
+  .nav-item.nav-active:hover {
+    color: var(--accent);
+  }
 }
 
 .nav-item.nav-active svg {
@@ -753,8 +758,10 @@ button:disabled {
   transition: box-shadow 180ms ease, color 140ms ease, transform 220ms var(--spring);
 }
 
-.btn:hover:not(:disabled) {
-  color: var(--ink);
+@media (hover: hover) {
+  .btn:hover:not(:disabled) {
+    color: var(--ink);
+  }
 }
 
 .btn:active:not(:disabled) {
@@ -841,8 +848,10 @@ button:disabled {
   flex-shrink: 0;
 }
 
-.icon-btn:hover:not(:disabled) {
-  color: var(--ink);
+@media (hover: hover) {
+  .icon-btn:hover:not(:disabled) {
+    color: var(--ink);
+  }
 }
 
 .icon-btn:active:not(:disabled) {
@@ -886,8 +895,10 @@ button:disabled {
   transition: box-shadow 180ms ease, color 140ms ease, transform 200ms var(--spring);
 }
 
-.chip:hover {
-  color: var(--ink);
+@media (hover: hover) {
+  .chip:hover {
+    color: var(--ink);
+  }
 }
 
 .chip:active {
@@ -938,8 +949,14 @@ button:disabled {
   white-space: nowrap;
 }
 
-.seg-item:hover {
-  color: var(--ink);
+@media (hover: hover) {
+  .seg-item:hover {
+    color: var(--ink);
+  }
+
+  .seg-item.seg-selected:hover {
+    color: var(--accent);
+  }
 }
 
 .seg-selected {
@@ -1096,8 +1113,10 @@ select.input {
     transform 220ms var(--spring);
 }
 
-.score-cell:hover {
-  color: var(--ink);
+@media (hover: hover) {
+  .score-cell:hover {
+    color: var(--ink);
+  }
 }
 
 .score-cell:active {
@@ -1106,12 +1125,26 @@ select.input {
   transform: scale(0.92);
 }
 
-.score-cell-selected {
+/* the chosen key turns blue immediately — hover and focus never override it */
+.score-cell-selected,
+.score-cell-selected:hover,
+.score-cell-selected:focus-visible {
   background: var(--concave);
   box-shadow: var(--press-sm), 0 0 12px var(--accent-glow);
   color: var(--accent);
   text-shadow: 0 0 10px var(--accent-glow);
   animation: pop 280ms var(--spring);
+}
+
+/* keyboard focus: a soft rounded glow instead of the square outline */
+.score-cell:focus-visible {
+  outline: none;
+  box-shadow: var(--raise-sm), 0 0 0 2px var(--accent-glow);
+}
+
+.score-cell-selected:focus-visible {
+  outline: none;
+  box-shadow: var(--press-sm), 0 0 12px var(--accent-glow), 0 0 0 2px var(--accent-glow);
 }
 
 @media (max-width: 430px) {
@@ -1455,9 +1488,11 @@ select.input {
   transition: box-shadow 160ms ease, background 160ms ease, transform 200ms var(--spring);
 }
 
-.cal-cell:hover {
-  background: var(--convex);
-  box-shadow: var(--raise-sm);
+@media (hover: hover) {
+  .cal-cell:hover {
+    background: var(--convex);
+    box-shadow: var(--raise-sm);
+  }
 }
 
 .cal-cell:active {
@@ -1585,9 +1620,11 @@ select.input {
   transition: box-shadow 160ms ease, background 160ms ease;
 }
 
-.history-row:hover {
-  background: var(--concave);
-  box-shadow: var(--press-sm);
+@media (hover: hover) {
+  .history-row:hover {
+    background: var(--concave);
+    box-shadow: var(--press-sm);
+  }
 }
 
 .history-date {
